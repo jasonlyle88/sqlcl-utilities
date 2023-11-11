@@ -1,0 +1,4 @@
+scratchpad/**
+*.code-workspace
+
+!.gitkeep
