@@ -12,10 +12,13 @@ function () {
     builtin setopt extended_glob warn_create_global typeset_silent no_short_loops rc_quotes no_auto_pushd
 
     local binDirectory
+    local file
 
     binDirectory="${sqlclConnectionAliasGeneratorsPluginDirectory}/bin"
 
-    source "${binDirectory}"/*.sh
+    for file in "${binDirectory}"/*.sh; do
+        source "${file}"
+    done
 }
 
 unset sqlclConnectionAliasGeneratorsPluginDirectory

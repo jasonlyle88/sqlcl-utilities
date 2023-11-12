@@ -38,8 +38,10 @@ function main() {
     scriptPath="$(getCanonicalPath "$(dirname -- "${BASH_SOURCE[0]}")")"
     binDirectory="${scriptPath}/bin"
 
-    # shellcheck source=bin/*
-    source "${binDirectory}"/*.sh
+    for file in "${binDirectory}"/*.sh; do
+        # shellcheck source=bin/*
+        source "${file}"
+    done
 } # main
 
 main "$@"
