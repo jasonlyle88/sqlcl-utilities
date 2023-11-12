@@ -52,40 +52,6 @@ function sqlclConnectHelper() {
         return 0
     } # usage
 
-    function toUpperCase() {
-        ########################################################################
-        #   toUpperCase
-        #
-        #   Return a string with all upper case letters
-        #
-        #   All parameters are taken as a single string to get in all upper case
-        #
-        #   upperCaseVar="$(toUpperCase "${var}")"
-        ########################################################################
-        local string="$*"
-
-        printf -- '%s' "${string}" | tr '[:lower:]' '[:upper:]'
-
-        return 0
-    } # toUpperCase
-
-    function toLowerCase() {
-        ########################################################################
-        #   toLowerCase
-        #
-        #   Return a string with all lower case letters
-        #
-        #   All parameters are taken as a single string to get in all lower case
-        #
-        #   toLowerCase="$(toUpperCase "${var}")"
-        ########################################################################
-        local string="${*}"
-
-        printf -- '%s' "${string}" | tr '[:upper:]' '[:lower:]'
-
-        return 0
-    } # toUpperCase
-
     function getCanonicalPath() {
         ########################################################################
         #   getCanonicalPath
