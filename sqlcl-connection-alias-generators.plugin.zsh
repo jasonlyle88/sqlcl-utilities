@@ -15,7 +15,7 @@ function () {
 
     binDirectory="${sqlclConnectionAliasGeneratorsPluginDirectory}/bin"
 
-    source "${binDirectory}"/*
+    source "${binDirectory}"/*.sh
 }
 
 unset sqlclConnectionAliasGeneratorsPluginDirectory

@@ -39,7 +39,7 @@ function main() {
     binDirectory="${scriptPath}/bin"
 
     # shellcheck source=bin/*
-    source "${binDirectory}"/*
+    source "${binDirectory}"/*.sh
 } # main
 
 main "$@"
