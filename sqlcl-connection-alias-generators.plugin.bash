@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+# shellcheck shell=bash
 
 function main() {
     function getCanonicalPath() {
@@ -38,9 +38,8 @@ function main() {
     scriptPath="$(getCanonicalPath "$(dirname -- "${BASH_SOURCE[0]}")")"
     binDirectory="${scriptPath}/bin"
 
-    if ! printf '%s' "${PATH}" | grep -Eq "(^|:)${binDirectory}($|:)"; then
-        export PATH="${binDirectory}:${PATH}"
-    fi
+    # shellcheck source=bin/*
+    source "${binDirectory}"/*
 } # main
 
 main "$@"

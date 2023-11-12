@@ -15,9 +15,7 @@ function () {
 
     binDirectory="${sqlclConnectionAliasGeneratorsPluginDirectory}/bin"
 
-    if ! ((${path[(Ie)${binDirectory}]})); then
-        export path=("${binDirectory}" "${path[@]}")
-    fi
+    source "${binDirectory}"/*
 }
 
 unset sqlclConnectionAliasGeneratorsPluginDirectory
