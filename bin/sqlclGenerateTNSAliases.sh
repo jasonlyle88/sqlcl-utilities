@@ -199,6 +199,8 @@ function sqlclGenerateTNSAliases() {
     local globalPrefix              # -P
     local -a tnsFiles               # -t
 
+    local handlingCloudConfigParams='false'
+
     ############################################################################
     ##  Constants
     ############################################################################
@@ -222,9 +224,6 @@ function sqlclGenerateTNSAliases() {
     ############################################################################
     ##  Procedural variables
     ############################################################################
-    local handlingCloudConfigParams='false'
-
-    # Procedural variables
     local file
     local -a netServiceNames
     local prefix
