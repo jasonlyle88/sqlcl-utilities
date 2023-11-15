@@ -19,6 +19,7 @@ function sqlclGenerateTNSAliases() {
     function usage() {
         printf -- 'This script is used to generate SQLcL aliases based on TNS aliases\n\n'
         printf -- 'The following arguments are recognized\n\n'
+        printf -- '  -b {binary}  --Specify the SQLcl binary to use\n'
         printf -- '  -c {zip}     --Generate shell aliases for the provided cloud configuration wallet (zip file)\n'
         printf -- '               --Can be specified more than once\n'
         printf -- '  -h           --Show this help\n'
