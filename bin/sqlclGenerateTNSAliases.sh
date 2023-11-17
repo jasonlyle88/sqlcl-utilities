@@ -367,6 +367,7 @@ function sqlclGenerateTNSAliases() {
         printf -- '%s\n' "${h2}"
 
         while read -r netServiceName; do
+            # shellcheck disable=1003
             printf -- 'alias %s%s='\''sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
                 "${globalPrefix}" \
                 "${netServiceName}" \
