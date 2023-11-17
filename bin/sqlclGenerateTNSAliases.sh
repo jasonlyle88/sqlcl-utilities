@@ -367,7 +367,11 @@ function sqlclGenerateTNSAliases() {
         printf -- '%s\n' "${h2}"
 
         while read -r netServiceName; do
-            printf -- 'alias %s%s='\''sqlclConnectHelper%s -i "%s"'\''\n' "${globalPrefix}" "${netServiceName}" "${sqlclBinary}" "${netServiceName}"
+            printf -- 'alias %s%s='\''sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
+                "${globalPrefix}" \
+                "${netServiceName}" \
+                "${sqlclBinary}" \
+                "${netServiceName}"
         done <<< "$(getNetServiceNamesFromFile "${tnsFile}")"
 
         printf '\n'
@@ -392,11 +396,18 @@ function sqlclGenerateTNSAliases() {
         done <<< "$(getCloudCounfigNetServiceNamesFromZip "${cloudConfigFiles[${i}]}")"
 
         for netServiceName in "${netServiceNames[@]}"; do
-            printf 'alias %s%s%s='\''sqlclConnectHelper%s -c "%s" -i "%s"'\''\n' "${globalPrefix}" "${prefix}" "${netServiceName}" "${sqlclBinary}" "${cloudConfigFiles[${i}]}" "${netServiceName}"
+            # shellcheck disable=1003
+            printf -- 'alias %s%s%s='\''sqlclConnectHelper%s -c '\''\'\'''\''%s'\''\'\'''\'' -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
+                "${globalPrefix}" \
+                "${prefix}" \
+                "${netServiceName}" \
+                "${sqlclBinary}" \
+                "${cloudConfigFiles[${i}]}" \
+                "${netServiceName}"
         done
 
         if [[ "${i}" -lt "$((${#cloudConfigFiles[@]}-1))" ]]; then
-            printf "\n"
+            printf -- '\n'
         fi
     done
 
