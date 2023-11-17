@@ -239,7 +239,7 @@ function sqlclGenerateOIDAliases() {
             return 1
         fi
 
-        printf '%s' "${ldapResponse}" | \
+        printf '%s\n' "${ldapResponse}" | \
             sed -r \
                 -e 's|^[[:space:]]+||' \
                 -e 's|[[:space:]]+$||' \
@@ -351,6 +351,7 @@ function sqlclGenerateOIDAliases() {
     ############################################################################
     ##  Procedural variables
     ############################################################################
+    local includeContextSearchFilter
     local ldapBaseUrl
     local ldapContextSearchUrl
     local ldapDatabaseSearchTemplate
@@ -488,14 +489,32 @@ function sqlclGenerateOIDAliases() {
         sqlclBinary=" -b '\\''${sqlclBinary}'\\''"
     fi
 
+    if [[ "${iFlag}" == 'true' ]]; then
+        includeContextSearchFilter="$(
+            printf -- '(|'
+            printf '(cn=%s)' "${providedContextList[@]}"
+            printf -- ')'
+        )"
+    fi
+
     ldapBaseUrl="ldap://${ldapHost}:${ldapPort}/${ldapBasePath}"
     ldapDatabaseSearchTemplate="ldap://${ldapHost}:${ldapPort}/cn=${contextToken},${ldapBasePath}?orclNetDescString?sub?(objectClass=orclNetService)"
-    ldapContextSearchUrl="${ldapBaseUrl}?dn?sub?(objectClass=orclContext)"
+    ldapContextSearchUrl="${ldapBaseUrl}?dn?sub?(&(objectClass=orclContext)${includeContextSearchFilter})"
 
     # Populate list of contexts to search through
     count=0
     while read -r line; do
         if [[ "${line}" == "${recordSeparator}" ]]; then
+            # All attributes have been read by this loop, so process entity
+            if [[ "${eFlag}" == 'false' ]]; then
+                contextList+=("${context}")
+            elif [[ "${eFlag}" == 'true' ]]; then
+                if ! elementInArray "${context}" "${providedContextList[@]}"; then
+                    contextList+=("${context}")
+                fi
+            fi
+
+            # Reset info and continue on to the next entity
             count=0
             continue
         fi
@@ -509,13 +528,7 @@ function sqlclGenerateOIDAliases() {
             attributeValue="$(toLowerCase "${line}")"
 
             if [[ "${attributeName}" == 'CN' ]]; then
-                if [[ "${eFlag}" == 'true' ]] && ! elementInArray "${attributeValue}" "${providedContextList[@]}"; then
-                    contextList+=("${attributeValue}")
-                elif [[ "${iFlag}" == 'true' ]] && elementInArray "${attributeValue}" "${providedContextList[@]}"; then
-                    contextList+=("${attributeValue}")
-                elif [[ "${eFlag}" == 'false' ]] && [[ "${iFlag}" == 'false' ]]; then
-                    contextList+=("${attributeValue}")
-                fi
+                context="${attributeValue}"
             fi
         fi
     done < <(parseLdapSearchResponse "${ldapContextSearchUrl}")
