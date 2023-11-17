@@ -351,7 +351,7 @@ function sqlclGenerateOIDAliases() {
     ############################################################################
     ##  Procedural variables
     ############################################################################
-    local includeContextSearchFilter
+    local contextSearchFilter
     local ldapBaseUrl
     local ldapContextSearchUrl
     local ldapDatabaseSearchTemplate
@@ -490,29 +490,29 @@ function sqlclGenerateOIDAliases() {
     fi
 
     if [[ "${iFlag}" == 'true' ]]; then
-        includeContextSearchFilter="$(
+        contextSearchFilter="$(
             printf -- '(|'
             printf '(cn=%s)' "${providedContextList[@]}"
             printf -- ')'
+        )"
+    elif [[ "${eFlag}" == 'true' ]]; then
+        contextSearchFilter="$(
+            printf -- '(!(|'
+            printf '(cn=%s)' "${providedContextList[@]}"
+            printf -- '))'
         )"
     fi
 
     ldapBaseUrl="ldap://${ldapHost}:${ldapPort}/${ldapBasePath}"
     ldapDatabaseSearchTemplate="ldap://${ldapHost}:${ldapPort}/cn=${contextToken},${ldapBasePath}?orclNetDescString?sub?(objectClass=orclNetService)"
-    ldapContextSearchUrl="${ldapBaseUrl}?dn?sub?(&(objectClass=orclContext)${includeContextSearchFilter})"
+    ldapContextSearchUrl="${ldapBaseUrl}?dn?sub?(&(objectClass=orclContext)${contextSearchFilter})"
 
     # Populate list of contexts to search through
     count=0
     while read -r line; do
         if [[ "${line}" == "${recordSeparator}" ]]; then
             # All attributes have been read by this loop, so process entity
-            if [[ "${eFlag}" == 'false' ]]; then
-                contextList+=("${context}")
-            elif [[ "${eFlag}" == 'true' ]]; then
-                if ! elementInArray "${context}" "${providedContextList[@]}"; then
-                    contextList+=("${context}")
-                fi
-            fi
+            contextList+=("${context}")
 
             # Reset info and continue on to the next entity
             count=0
