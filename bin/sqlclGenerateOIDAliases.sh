@@ -1,5 +1,6 @@
 #shellcheck shell=bash
-
+#TODO: Add a parameter that will take a function that can add additional aliases
+#TODO: This is so I can generate the APEX opening aliases
 function sqlclGenerateOIDAliases() {
     ############################################################################
     #
