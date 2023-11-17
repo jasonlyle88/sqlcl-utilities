@@ -56,7 +56,7 @@ function sqlclGenerateTNSAliases() {
             (cd "${target}" || exit; pwd -P)
         elif [ -f "${target}" ]; then
             # file
-            if [[ "${target}" = /* ]]; then
+            if [[ "${target}" == /* ]]; then
                 # Absolute file path
                 (cd "$(dirname "${target}")" || exit; printf -- '%s/%s\n' "$(pwd -P)" "$(basename "${target}")")
             elif [[ "${target}" == */* ]]; then
@@ -296,7 +296,7 @@ function sqlclGenerateTNSAliases() {
     fi;
 
     # Check all provided non-standard TNS files are readable
-    if [[ "${tFlag}" = 'true' ]]; then
+    if [[ "${tFlag}" == 'true' ]]; then
         for tnsFile in "${tnsFiles[@]}"; do
             if [[ ! -r "${tnsFile}" ]]; then
                 printf 'Not a readable file: \"%s\"\n' "${tnsFile}" >&2
@@ -306,7 +306,7 @@ function sqlclGenerateTNSAliases() {
     fi
 
     # Check for the tnsnames.ora file in standard locations
-    if [[ "${TFlag}" = 'true' ]]; then
+    if [[ "${TFlag}" == 'true' ]]; then
 
         # Check if the TNS_ADMIN variable is set
         if [[ -n "${TNS_ADMIN}"  ]]; then
@@ -335,7 +335,7 @@ function sqlclGenerateTNSAliases() {
     fi
 
     # Check SQLcl binary is executable
-    if [[ "${bFlag}" = 'true' ]] && [[ ! "$(command -v "${sqlclBinary}")" ]]; then
+    if [[ "${bFlag}" == 'true' ]] && [[ ! "$(command -v "${sqlclBinary}")" ]]; then
         printf 'Cannot execute SQLcl binary "%s"\n' "${sqlclBinary}" >&2
         return 10
     fi
@@ -352,7 +352,7 @@ function sqlclGenerateTNSAliases() {
     printf -- '%s\n' "${h1}"
     printf -- '\n'
 
-    if [[ "${bFlag}" = 'true' ]]; then
+    if [[ "${bFlag}" == 'true' ]]; then
         sqlclBinary=" -b '\\''${sqlclBinary}'\\''"
     fi
 
