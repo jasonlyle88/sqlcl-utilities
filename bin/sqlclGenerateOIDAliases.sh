@@ -1,4 +1,6 @@
 #shellcheck shell=bash
+#TODO: Capture database DN and use that for the LDAPCON base path
+
 #TODO: Add a parameter that will take a function that can add additional aliases
 #TODO: This is so I can generate the APEX opening aliases
 function sqlclGenerateOIDAliases() {
@@ -505,7 +507,7 @@ function sqlclGenerateOIDAliases() {
     fi
 
     ldapBaseUrl="ldap://${ldapHost}:${ldapPort}/${ldapBasePath}"
-    ldapDatabaseSearchTemplate="ldap://${ldapHost}:${ldapPort}/cn=${contextToken},${ldapBasePath}?orclNetDescString?sub?(objectClass=orclNetService)"
+    ldapDatabaseSearchTemplate="ldap://${ldapHost}:${ldapPort}/cn=${contextToken},${ldapBasePath}?orclNetDescString?one?(objectClass=orclNetService)"
     ldapContextSearchUrl="${ldapBaseUrl}?dn?sub?(&(objectClass=orclContext)${contextSearchFilter})"
 
     # Populate list of contexts to search through
