@@ -353,7 +353,7 @@ function sqlclGenerateTNSAliases() {
     printf -- '\n'
 
     if [[ "${bFlag}" = 'true' ]]; then
-        sqlclBinary=" -b \"${sqlclBinary}\""
+        sqlclBinary=" -b '\\''${sqlclBinary}'\\''"
     fi
 
     if [[ "${PFlag}" != 'true' ]]; then
