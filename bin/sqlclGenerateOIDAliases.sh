@@ -116,37 +116,6 @@ function sqlclGenerateOIDAliases() {
         fi
     } # getCanonicalPath
 
-    function elementInArray() {
-        ############################################################################
-        #   elementInArray
-        #
-        #   Determine if an element exists in an array. Exits with a code of 0 if
-        #   element is present, otherwise exists with a value of 1
-        #
-        #   The first parameter is the element for which to search in an array.
-        #   The remaining parameters are the elements of the array.
-        #
-        #   if elementInArray "look for me" "${array[@]}"; then
-        #       echo "In array"
-        #   else
-        #       echo "Not in array"
-        #   fi
-        ############################################################################
-        local match="$1"
-        local arrayLength=$((${#}-1))
-        local idx
-
-        for (( idx=0; idx<arrayLength; idx++ )); do
-            shift
-
-            if [[ "$1" == "${match}" ]]; then
-                return 0
-            fi
-        done
-
-        return 1
-    } # elementInArray
-
     function parseLdapSearchResponse() {
         local ldapSearchUrl="${1}"
         local ldapUser="${2}"
