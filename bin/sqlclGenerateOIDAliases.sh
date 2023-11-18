@@ -1,6 +1,4 @@
 #shellcheck shell=bash
-#TODO: Capture database DN and use that for the LDAPCON base path
-
 #TODO: Add a parameter that will take a function that can add additional aliases
 #TODO: This is so I can generate the APEX opening aliases
 function sqlclGenerateOIDAliases() {
@@ -367,8 +365,10 @@ function sqlclGenerateOIDAliases() {
     local -a contextList=()
     local context
     local databaseName
+    local databaseDn
     local databaseConnectString
     local aliasName
+    local ldapconBase
 
     ############################################################################
     #
@@ -561,13 +561,14 @@ function sqlclGenerateOIDAliases() {
                         "${databaseConnectString}"
                 )"
 
+                ldapconBase="${databaseDn#"cn=${databaseName}"}"
+
                 # shellcheck disable=1003
-                printf -- 'alias %s='\''LDAPCON="jdbc:oracle:thin:@ldap://%s:%s/#ENTRY#,cn=%s,%s" sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
+                printf -- 'alias %s='\''LDAPCON='\''\'\'''\''jdbc:oracle:thin:@ldap://%s:%s/#ENTRY#%s'\''\'\'''\'' sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
                         "${aliasName}" \
                         "${ldapHost}" \
                         "${ldapPort}" \
-                        "${context}" \
-                        "${ldapBasePath}" \
+                        "${ldapconBase}" \
                         "${sqlclBinary}" \
                         "${databaseName}"
 
@@ -586,6 +587,8 @@ function sqlclGenerateOIDAliases() {
 
                 if [[ "${attributeName}" == 'CN' ]]; then
                     databaseName="${attributeValue}"
+                elif [[ "${attributeName}" == 'DN' ]]; then
+                    databaseDn="${attributeValue}"
                 elif [[ "${attributeName}" == 'ORCLNETDESCSTRING' ]]; then
                     databaseConnectString="${attributeValue}"
                 fi
