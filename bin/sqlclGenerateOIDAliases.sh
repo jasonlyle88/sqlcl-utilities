@@ -1,6 +1,4 @@
 #shellcheck shell=bash
-#TODO1: Failure message and exit when context query fails
-
 #TODO2: Make database query calls in background and wait on all calls
 #TODO2: Output of each call to its own temp file, adding temp files to array
 #TODO2: Then after wait finishes just cat each temp file and delete it
@@ -203,7 +201,7 @@ function sqlclGenerateOIDAliases() {
         local ldapResponse
 
         if ! ldapResponse="$(curl -su "${ldapUser}:${ldapPassword}" "${ldapSearchUrl}")"; then
-            printf -- 'ERROR: LDAP request failed' >&2
+            printf -- 'ERROR: LDAP request failed\n' >&2
             return 1
         fi
 
@@ -324,6 +322,8 @@ function sqlclGenerateOIDAliases() {
     local ldapContextSearchUrl
     local ldapDatabaseSearchTemplate
     local ldapDatabaseSearchUrl
+    local ldapResponse
+    local ldapResponseExitCode
     local line
     local count
     local iteration
@@ -488,6 +488,13 @@ function sqlclGenerateOIDAliases() {
     ldapDatabaseSearchTemplate="ldap://${ldapHost}:${ldapPort}/cn=${contextToken},${ldapBasePath}?orclNetDescString?one?(objectClass=orclNetService)"
     ldapContextSearchUrl="${ldapBaseUrl}?dn?sub?(&(objectClass=orclContext)${contextSearchFilter})"
 
+    # Get parsed LDAP response
+    ldapResponse="$(parseLdapSearchResponse "${ldapContextSearchUrl}")"
+    ldapResponseExitCode=$?
+    if [[ "${ldapResponseExitCode}" -gt 0 ]]; then
+        return ${ldapResponseExitCode}
+    fi
+
     # Populate list of contexts to search through
     count=0
     while read -r line; do
@@ -512,7 +519,7 @@ function sqlclGenerateOIDAliases() {
                 context="${attributeValue}"
             fi
         fi
-    done < <(parseLdapSearchResponse "${ldapContextSearchUrl}")
+    done < <(printf '%s\n' "${ldapResponse}")
 
     # Loop over each context in the contextList
     for context in "${contextList[@]}"; do
