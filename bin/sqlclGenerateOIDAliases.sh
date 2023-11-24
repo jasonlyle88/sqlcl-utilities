@@ -1,6 +1,14 @@
 #shellcheck shell=bash
-#TODO: Add a parameter that will take a function that can add additional aliases
-#TODO: This is so I can generate the APEX opening aliases
+#TODO1: Failure message and exit when context query fails
+
+#TODO2: Make database query calls in background and wait on all calls
+#TODO2: Output of each call to its own temp file, adding temp files to array
+#TODO2: Then after wait finishes just cat each temp file and delete it
+
+#TODO3: Output a message for failed database queries
+
+#TODO4: Add a parameter (-a) that will take a function that can add additional aliases
+#TODO4: This is so I can generate the APEX opening aliases
 function sqlclGenerateOIDAliases() {
     ############################################################################
     #
