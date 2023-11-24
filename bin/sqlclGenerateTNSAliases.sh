@@ -4,9 +4,11 @@
 # TODO1: i.e. only standard TNS file, or only 1 specified TNS file, or only 1
 # TODO1: cloud wallet
 
-# TODO2: Add name generation function like in OID Aliases (-f)
+# TODO2: Add call generation information to header like OID Aliases
 
-# TODO3: Add an alias generation funciton like in OID Aliases (-a)
+# TODO3: Add name generation function like in OID Aliases (-f)
+
+# TODO4: Add an alias generation funciton like in OID Aliases (-a)
 
 function sqlclGenerateTNSAliases() {
     ############################################################################
