@@ -3,8 +3,6 @@
 #TODO2: Output of each call to its own temp file, adding temp files to array
 #TODO2: Then after wait finishes just cat each temp file and delete it
 
-#TODO3: Output a message for failed database queries
-
 #TODO4: Add a parameter (-a) that will take a function that can add additional aliases
 #TODO4: This is so I can generate the APEX opening aliases
 function sqlclGenerateOIDAliases() {
@@ -200,7 +198,7 @@ function sqlclGenerateOIDAliases() {
 
         local ldapResponse
 
-        if ! ldapResponse="$(curl -su "${ldapUser}:${ldapPassword}" "${ldapSearchUrl}")"; then
+        if ! ldapResponse="$(curl --fail -su "${ldapUser}:${ldapPassword}" "${ldapSearchUrl}")"; then
             printf -- 'ERROR: LDAP request failed\n' >&2
             return 1
         fi
@@ -533,6 +531,13 @@ function sqlclGenerateOIDAliases() {
         printf -- '%s %s\n' "${hs}" "${context}"
         printf -- '%s\n' "${h2}"
 
+        # Get parsed LDAP response
+        ldapResponse="$(parseLdapSearchResponse "${ldapDatabaseSearchUrl}")"
+        ldapResponseExitCode=$?
+        if [[ "${ldapResponseExitCode}" -gt 0 ]]; then
+            continue
+        fi
+
         # Loop over all the databases for this context
         count=0
         while read -r line; do
@@ -579,7 +584,7 @@ function sqlclGenerateOIDAliases() {
                 fi
             fi
 
-        done < <(parseLdapSearchResponse "${ldapDatabaseSearchUrl}")
+        done < <(printf '%s\n' "${ldapResponse}")
     done
 
     printf -- '\n'
