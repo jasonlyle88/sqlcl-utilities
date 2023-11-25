@@ -18,6 +18,16 @@ function sqlclGenerateOIDAliases() {
 
     ############################################################################
     #
+    # Setup
+    #
+    ############################################################################
+    # For this function, make arrays behave like KSH/BASH
+    if command -v setopt 1>/dev/null 2>&1; then
+        setopt local_options KSH_ARRAYS
+    fi
+
+    ############################################################################
+    #
     # Functions
     #
     ############################################################################
@@ -308,7 +318,7 @@ function sqlclGenerateOIDAliases() {
     local originalIFS="${IFS}"
 
     local recordSeparator
-    local contextToken='#CONTEXT_TOKEN#'
+    local basePathToken='#BASE_PATH_TOKEN#'
 
     recordSeparator="$(printf '\x1E')"
 
@@ -325,10 +335,13 @@ function sqlclGenerateOIDAliases() {
     local line
     local count
     local iteration
+    local index
     local attributeName
     local attributeValue
     local -a contextList=()
+    local -a contextPathList=()
     local context
+    local contextPath
     local databaseName
     local databaseDn
     local databaseConnectString
@@ -483,8 +496,8 @@ function sqlclGenerateOIDAliases() {
     fi
 
     ldapBaseUrl="ldap://${ldapHost}:${ldapPort}/${ldapBasePath}"
-    ldapDatabaseSearchTemplate="ldap://${ldapHost}:${ldapPort}/cn=${contextToken},${ldapBasePath}?orclNetDescString?one?(objectClass=orclNetService)"
-    ldapContextSearchUrl="${ldapBaseUrl}?dn?sub?(&(objectClass=orclContext)${contextSearchFilter})"
+    ldapDatabaseSearchTemplate="ldap://${ldapHost}:${ldapPort}/${basePathToken}?orclNetDescString?one?(objectClass=orclNetService)"
+    ldapContextSearchUrl="${ldapBaseUrl}?cn?sub?(&(objectClass=orclContext)${contextSearchFilter})"
 
     # Get parsed LDAP response
     ldapResponse="$(parseLdapSearchResponse "${ldapContextSearchUrl}")"
@@ -499,6 +512,7 @@ function sqlclGenerateOIDAliases() {
         if [[ "${line}" == "${recordSeparator}" ]]; then
             # All attributes have been read by this loop, so process entity
             contextList+=("${context}")
+            contextPathList+=("${contextPath}")
 
             # Reset info and continue on to the next entity
             count=0
@@ -515,15 +529,21 @@ function sqlclGenerateOIDAliases() {
 
             if [[ "${attributeName}" == 'CN' ]]; then
                 context="${attributeValue}"
+            elif [[ "${attributeName}" == 'DN' ]]; then
+                contextPath="${attributeValue}"
             fi
         fi
     done < <(printf '%s\n' "${ldapResponse}")
 
     # Loop over each context in the contextList
-    for context in "${contextList[@]}"; do
+    # for context in "${contextList[@]}"; do
+    for (( index=0; index<${#contextList[@]}; index++ )); do
+        context="${contextList[${index}]}"
+        contextPath="${contextPathList[${index}]}"
+
         ldapDatabaseSearchUrl="$(
             printf -- '%s' "${ldapDatabaseSearchTemplate}" | \
-            sed -re "s|${contextToken}|${context}|"
+            sed -re "s|${basePathToken}|${contextPath}|"
         )"
 
         printf -- '\n'
