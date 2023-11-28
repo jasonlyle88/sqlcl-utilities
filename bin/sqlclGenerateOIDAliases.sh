@@ -1,7 +1,4 @@
 #shellcheck shell=bash
-#TODO2: Make database query calls in background and wait on all calls
-#TODO2: Output of each call to its own temp file, adding temp files to array
-#TODO2: Then after wait finishes just cat each temp file and delete it
 
 function sqlclGenerateOIDAliases() {
     ############################################################################
@@ -21,7 +18,7 @@ function sqlclGenerateOIDAliases() {
     ############################################################################
     # For this function, make arrays behave like KSH/BASH
     if command -v setopt 1>/dev/null 2>&1; then
-        setopt local_options KSH_ARRAYS
+        setopt local_options KSH_ARRAYS NO_MONITOR
     fi
 
     ############################################################################
@@ -241,6 +238,97 @@ function sqlclGenerateOIDAliases() {
                 -e "s|(\x1E)|\n\1|"
     } # parseLdapSearchResponse
 
+    function parseContextDatabases() {
+        local ldapDatabaseSearchUrl="${1}"
+        local context="${2}"
+
+        local ldapResponse
+        local ldapResponseExitCode
+        local count
+        local iteration
+        local line
+        local attributeName
+        local attributeValue
+        local databaseName
+        local databaseDn
+        local databaseConnectString
+        local aliasName
+        local ldapconBase
+
+        printf -- '\n'
+        printf -- '%s\n' "${h2}"
+        printf -- '%s %s\n' "${hs}" "${context}"
+        printf -- '%s\n' "${h2}"
+
+        # Get parsed LDAP response
+        ldapResponse="$(parseLdapSearchResponse "${ldapDatabaseSearchUrl}")"
+        ldapResponseExitCode=$?
+        if [[ "${ldapResponseExitCode}" -gt 0 ]]; then
+            return
+        fi
+
+        # Loop over all the databases for this context
+        count=0
+        while read -r line; do
+            if [[ "${line}" == "${recordSeparator}" ]]; then
+                # All attributes have been read by this loop, so process entity
+                aliasName="$(
+                    "${aliasNameFormatFunction}" \
+                        "${aliasPrefix}" \
+                        "${context}" \
+                        "${databaseName}" \
+                        "${databaseConnectString}"
+                )"
+
+                # LDAPCON must have #ENTRY# in it, so we cannot provide the
+                # actual database name in the LDAPCON string. Because of that,
+                # the database name must be deleted from the DN attribute.
+                ldapconBase="${databaseDn#"cn=${databaseName}"}"
+
+                # shellcheck disable=1003
+                printf -- 'alias %s='\''LDAPCON='\''\'\'''\''jdbc:oracle:thin:@ldap://%s:%s/#ENTRY#%s'\''\'\'''\'' sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
+                        "${aliasName}" \
+                        "${ldapHost}" \
+                        "${ldapPort}" \
+                        "${ldapconBase}" \
+                        "${sqlclBinary}" \
+                        "${databaseName}"
+
+                # Call the additional aliases function if provided
+                if [[ "${aFlag}" = 'true' ]]; then
+                    "${additionalAliasesFunction}" \
+                        "${aliasPrefix}" \
+                        "${aliasName}" \
+                        "${context}" \
+                        "${databaseName}" \
+                        "${databaseConnectString}"
+                fi
+
+                # Reset info and continue on to the next entity
+                count=0
+                continue
+            fi
+
+            ((count=count+1))
+            iteration=$((count % 2))
+
+            if [[ "${iteration}" -eq 1 ]]; then
+                attributeName="$(toUpperCase "${line}")"
+            else
+                attributeValue="$(toLowerCase "${line}")"
+
+                if [[ "${attributeName}" == 'CN' ]]; then
+                    databaseName="${attributeValue}"
+                elif [[ "${attributeName}" == 'DN' ]]; then
+                    databaseDn="${attributeValue}"
+                elif [[ "${attributeName}" == 'ORCLNETDESCSTRING' ]]; then
+                    databaseConnectString="${attributeValue}"
+                fi
+            fi
+
+        done < <(printf '%s\n' "${ldapResponse}")
+    } # parseContextDatabases
+
     # shellcheck disable=2317
     function defaultAliasNameFormatFunction() {
         local aliasPrefix="${1}"
@@ -349,11 +437,11 @@ function sqlclGenerateOIDAliases() {
     local -a contextPathList=()
     local context
     local contextPath
+    local tempFile
+    local -a tempFiles=()
+    local pid
+    local -a pidList=()
     local databaseName
-    local databaseDn
-    local databaseConnectString
-    local aliasName
-    local ldapconBase
 
     ############################################################################
     #
@@ -561,81 +649,28 @@ function sqlclGenerateOIDAliases() {
 
         ldapDatabaseSearchUrl="$(
             printf -- '%s' "${ldapDatabaseSearchTemplate}" | \
-            sed -re "s|${basePathToken}|${contextPath}|"
+                sed -re "s|${basePathToken}|${contextPath}|"
         )"
 
-        printf -- '\n'
-        printf -- '%s\n' "${h2}"
-        printf -- '%s %s\n' "${hs}" "${context}"
-        printf -- '%s\n' "${h2}"
+        tempFile="$(mktemp)"
+        tempFiles+=("${tempFile}")
 
-        # Get parsed LDAP response
-        ldapResponse="$(parseLdapSearchResponse "${ldapDatabaseSearchUrl}")"
-        ldapResponseExitCode=$?
-        if [[ "${ldapResponseExitCode}" -gt 0 ]]; then
-            continue
-        fi
+        {
+            parseContextDatabases \
+                "${ldapDatabaseSearchUrl}" \
+                "${context}" \
+                1>"${tempFile}" 2>&1 &
+        } 1>/dev/null 2>&1
 
-        # Loop over all the databases for this context
-        count=0
-        while read -r line; do
-            if [[ "${line}" == "${recordSeparator}" ]]; then
-                # All attributes have been read by this loop, so process entity
-                aliasName="$(
-                    "${aliasNameFormatFunction}" \
-                        "${aliasPrefix}" \
-                        "${context}" \
-                        "${databaseName}" \
-                        "${databaseConnectString}"
-                )"
+        pid=$!
+        pidList+=("${pid}")
+    done
 
-                # LDAPCON must have #ENTRY# in it, so we cannot provide the
-                # actual database name in the LDAPCON string. Because of that,
-                # the database name must be deleted from the DN attribute.
-                ldapconBase="${databaseDn#"cn=${databaseName}"}"
+    wait "${pidList[@]}" 1>/dev/null 2>&1
 
-                # shellcheck disable=1003
-                printf -- 'alias %s='\''LDAPCON='\''\'\'''\''jdbc:oracle:thin:@ldap://%s:%s/#ENTRY#%s'\''\'\'''\'' sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
-                        "${aliasName}" \
-                        "${ldapHost}" \
-                        "${ldapPort}" \
-                        "${ldapconBase}" \
-                        "${sqlclBinary}" \
-                        "${databaseName}"
-
-                # Call the additional aliases function if provided
-                if [[ "${aFlag}" = 'true' ]]; then
-                    "${additionalAliasesFunction}" \
-                        "${aliasPrefix}" \
-                        "${aliasName}" \
-                        "${context}" \
-                        "${databaseName}" \
-                        "${databaseConnectString}"
-                fi
-
-                # Reset info and continue on to the next entity
-                count=0
-                continue
-            fi
-
-            ((count=count+1))
-            iteration=$((count % 2))
-
-            if [[ "${iteration}" -eq 1 ]]; then
-                attributeName="$(toUpperCase "${line}")"
-            else
-                attributeValue="$(toLowerCase "${line}")"
-
-                if [[ "${attributeName}" == 'CN' ]]; then
-                    databaseName="${attributeValue}"
-                elif [[ "${attributeName}" == 'DN' ]]; then
-                    databaseDn="${attributeValue}"
-                elif [[ "${attributeName}" == 'ORCLNETDESCSTRING' ]]; then
-                    databaseConnectString="${attributeValue}"
-                fi
-            fi
-
-        done < <(printf '%s\n' "${ldapResponse}")
+    for tempFile in "${tempFiles[@]}"; do
+        command cat "${tempFile}"
+        rm "${tempFile}"
     done
 
     printf -- '\n'
