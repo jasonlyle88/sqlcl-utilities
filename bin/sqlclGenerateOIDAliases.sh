@@ -8,15 +8,18 @@ function sqlclGenerateOIDAliases() {
     ############################################################################
     # In an attempt to avoid limits on the number of entities returned in a
     # single search request, this function makes multiple LDAP requests.
-    # First it requests all of the OID Contexts
-    # Then it loops over each context and requests all the associated databases
+    # First it queries all of the requested orclContext entities
+    # (contexts/groups/projects).
+    # Then it loops over each orclContext entity and requests all the
+    # associated orclNetService entities (databases).
 
     ############################################################################
     #
     # Setup
     #
     ############################################################################
-    # For this function, make arrays behave like KSH/BASH
+    # For this function in ZSH, make arrays behave like KSH/BASH and do not
+    # monitor background processes
     if command -v setopt 1>/dev/null 2>&1; then
         setopt local_options KSH_ARRAYS NO_MONITOR
     fi
@@ -655,6 +658,8 @@ function sqlclGenerateOIDAliases() {
         tempFile="$(mktemp)"
         tempFiles+=("${tempFile}")
 
+        # Contain parseContextDatabases call in execution block so that the
+        # job monitor output in BASH can be directed to /dev/null
         {
             parseContextDatabases \
                 "${ldapDatabaseSearchUrl}" \
