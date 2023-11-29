@@ -34,7 +34,7 @@ function sqlclGenerateOIDAliases() {
         printf -- '\n'
         printf -- 'The following arguments are recognized\n'
         printf -- '\n'
-        printf -- '  -a {function}  --The name of a function that prints extra aliases (one per line)}\n'
+        printf -- '  -a {function}  --The name of a function that prints additional aliases (one per line)}\n'
         printf -- '                 --The function will receive the following parameters (in the provided order):\n'
         printf -- '                 --      Alias prefix\n'
         printf -- '                 --      Alias name\n'
