@@ -1,9 +1,5 @@
 #shellcheck shell=bash
 
-# TODO1: Simplify by only allowing one TNS processing per function call
-# TODO1: i.e. only standard TNS file, or only 1 specified TNS file, or only 1
-# TODO1: cloud wallet
-
 # TODO2: Add call generation information to header like OID Aliases
 
 # TODO3: Add name generation function like in OID Aliases (-f)
@@ -31,16 +27,12 @@ function sqlclGenerateTNSAliases() {
         printf -- 'The following arguments are recognized\n\n'
         printf -- '  -b {binary}  --Specify the SQLcl binary to use\n'
         printf -- '  -c {zip}     --Generate shell aliases for the provided cloud configuration wallet (zip file)\n'
-        printf -- '               --Can be specified more than once\n'
         printf -- '  -h           --Show this help\n'
-        printf -- '  -p {prefix}  --The cloud configuration prefix for the shell aliases of the last specified cloud configuration wallet\n'
-        printf -- '               --Can be specified once per cloud configuration paramater (-c)\n'
-        printf -- '  -P {prefix}  --The global prefix for all the aliases generated\n'
+        printf -- '  -p {prefix}  --Prefix used for generated aliases\n'
         printf -- '               --Defaults to "sql."\n'
-        printf -- '  -t {file}    --Generate shell aliases for the provided TNS file\n'
-        printf -- '               --Can be specified more than once\n'
+        printf -- '  -t {file}    --Generate shell aliases for the provided TNS names file\n'
         printf -- '               --Should be a valid tnsnames.ora file\n'
-        printf -- '  -T           --Generate shell aliases for the standard tnsnames.ora file\n'
+        printf -- '  -T           --Generate shell aliases for the tnsnames.ora file in the standard location\n'
         printf -- '\n'
         printf -- 'Example:\n'
         printf -- '  %s -T -t "~/tnsnames.ora" -c "~/cloud_wallet_1.zip" -c "~/cloud_wallet_2.zip"\n\n' "${scriptName}"
@@ -78,6 +70,34 @@ function sqlclGenerateTNSAliases() {
             fi
         fi
     } # getCanonicalPath
+
+    function standardTnsFileLookup() {
+        local tnsnamesName='tnsnames.ora'
+
+        # Check if the TNS_ADMIN variable is set
+        if [[ -n "${TNS_ADMIN}"  ]]; then
+            file="${TNS_ADMIN}/${tnsnamesName}"
+
+            if [[ -r "${file}" ]]; then
+                printf -- '%s' "${file}"
+            else
+                printf -- 'No %s readable file at location (%s)\n' "$(basename "${file}")" "$(dirname "${file}")" >&2
+                return 1
+            fi
+        elif [[ -n "${ORACLE_HOME}" ]]; then
+            file="${ORACLE_HOME}/network/admin/${tnsnamesName}"
+
+            if [[ -r "${file}" ]]; then
+                printf -- '%s' "${file}"
+            else
+                printf -- 'No %s readable file at location (%s)\n' "$(basename "${file}")" "$(dirname "${file}")" >&2
+                return 2
+            fi
+        else
+            printf -- 'No existing TNS_ADMIN or ORACLE_HOME variable, unable to locate standard %s\n' "${tnsnamesName}" >&2
+            return 3
+        fi
+    } #standardTnsFileLookup
 
     function getNetServiceNamesFromFile() {
         local file="$1"
@@ -199,17 +219,13 @@ function sqlclGenerateTNSAliases() {
     local bFlag='false'
     local cFlag='false'
     local pFlag='false'
-    local PFlag='false'
     local tFlag='false'
     local TFlag='false'
 
     local sqlclBinary               # -b
-    local -a cloudConfigFiles       # -c
-    local -a cloudConfigPrefixes    # -p
-    local globalPrefix              # -P
-    local -a tnsFiles               # -t
-
-    local handlingCloudConfigParams='false'
+    local cloudConfigZip            # -c
+    local aliasPrefix               # -p
+    local tnsFile                   # -t
 
     ############################################################################
     ##  Constants
@@ -229,21 +245,18 @@ function sqlclGenerateTNSAliases() {
     # shellcheck disable=SC2034
     local originalIFS="${IFS}"
 
-    local tnsnamesName='tnsnames.ora'
-
     ############################################################################
     ##  Procedural variables
     ############################################################################
+    local tnsFileCount
     local file
-    local -a netServiceNames
-    local prefix
 
     ############################################################################
     #
     # Option parsing
     #
     ############################################################################
-    while getopts ':b:c:hp:P:t:T' opt
+    while getopts ':b:c:hp:t:T' opt
     do
         case "${opt}" in
         'b')
@@ -252,102 +265,91 @@ function sqlclGenerateTNSAliases() {
             ;;
         'c')
             cFlag='true'
-            cloudConfigFiles+=("${OPTARG}")
-            handlingCloudConfigParams='true'
+            cloudConfigZip="${OPTARG}"
             ;;
         'h')
             usage
             return 0
             ;;
         'p')
-            # shellcheck disable=2034
             pFlag='true'
-            if [[ "${handlingCloudConfigParams}" != 'true' ]]; then
-                printf 'ERROR: Argument -p must only come after -c or -u arguments\n' >&2
-                return 4
-            fi
-
-            cloudConfigPrefixes[${#cloudConfigFiles[@]}-1]="${OPTARG}"
-            ;;
-        'P')
-            PFlag='true'
-            globalPrefix="${OPTARG}"
+            aliasPrefix="${OPTARG}"
             ;;
         't')
             tFlag='true'
-            tnsFiles+=("${OPTARG}")
-            handlingCloudConfigParams='false'
+            tnsFile="${OPTARG}"
             ;;
         'T')
             TFlag='true'
-            handlingCloudConfigParams='false'
+            if ! tnsFile="$(standardTnsFileLookup)"; then
+                return 2
+            fi
             ;;
         '?')
             printf 'ERROR: Invalid option -%s\n\n' "${OPTARG}" >&2
             usage >&2
-            return 3
+            return 1
             ;;
         ':')
             printf 'ERROR: Option -%s requires an argument.\n' "${OPTARG}" >&2
-            return 3
+            return 1
             ;;
         esac
     done
 
-    ##############################################################################
+    ############################################################################
     #
     # Parameter handling
     #
-    ##############################################################################
-    # Check at least some version of TNS aliases is supplied
-    if [[ "${TFlag}" != 'true' ]] && [[ "${tFlag}" != 'true' ]] && [[ "${cFlag}" != 'true' ]]; then
-        printf "At least one TNS alias file must be specified\n" >&2
-        return 5
-    fi;
+    ############################################################################
 
-    # Check all provided non-standard TNS files are readable
-    if [[ "${tFlag}" == 'true' ]]; then
-        for tnsFile in "${tnsFiles[@]}"; do
-            if [[ ! -r "${tnsFile}" ]]; then
-                printf 'Not a readable file: \"%s\"\n' "${tnsFile}" >&2
-                return 6
-            fi
-        done
+    #
+    # Parameter defaults
+    #
+    if [[ "${pFlag}" == 'false' ]]; then
+        aliasPrefix='sql.'
     fi
 
-    # Check for the tnsnames.ora file in standard locations
-    if [[ "${TFlag}" == 'true' ]]; then
-
-        # Check if the TNS_ADMIN variable is set
-        if [[ -n "${TNS_ADMIN}"  ]]; then
-            file="${TNS_ADMIN}/${tnsnamesName}"
-
-            if [[ -r "${file}" ]]; then
-                tnsFiles+=("${file}")
-            else
-                printf 'No %s readable file at location (%s)\n' "${tnsnamesName}" "$(dirname "${file}")" >&2
-                return 7
-            fi
-        elif [[ -n "${ORACLE_HOME}" ]]; then
-            file="${ORACLE_HOME}/network/admin/${tnsnamesName}"
-
-            if [[ -r "${file}" ]]; then
-                tnsFiles+=("${file}")
-            else
-                printf 'No %s readable file at location (%s)\n' "${tnsnamesName}" "$(dirname "${file}")" >&2
-                return 8
-            fi
-        else
-            printf 'No existing TNS_ADMIN or ORACLE_HOME variable, unable to locate standard %s\n' "${tnsnamesName}" >&2
-            return 9
-        fi
-
-    fi
+    #
+    # Parameter validations
+    #
 
     # Check SQLcl binary is executable
     if [[ "${bFlag}" == 'true' ]] && [[ ! "$(command -v "${sqlclBinary}")" ]]; then
         printf 'Cannot execute SQLcl binary "%s"\n' "${sqlclBinary}" >&2
-        return 10
+        return 11
+    fi
+
+    tnsFileCount=0
+    if [[ "${cFlag}" == 'true' ]]; then
+        ((tnsFileCount=tnsFileCount+1))
+    fi;
+
+    if [[ "${tFlag}" == 'true' ]]; then
+        ((tnsFileCount=tnsFileCount+1))
+    fi;
+
+
+    if [[ "${TFlag}" == 'true' ]]; then
+        ((tnsFileCount=tnsFileCount+1))
+    fi;
+
+    # Check at least some version of TNS aliases is supplied
+    if [[ "${tnsFileCount}" -eq 0 ]]; then
+        printf -- "At least one TNS alias file must be specified\n" >&2
+        return 12
+    fi;
+
+    # Check at only one version of TNS aliases is supplied
+    if [[ "${tnsFileCount}" -gt 1 ]]; then
+        printf -- "Only one TNS alias file can be specified\n" >&2
+        return 13
+    fi;
+
+    # Check TNS file or cloud config zip file is readable
+    if [[ ! -r "${tnsFile}${cloudConfigZip}" ]]; then
+        printf 'Not a readable file: "%s"\n' "${tnsFile}${cloudConfigZip}" >&2
+        return 14
     fi
 
     ##############################################################################
@@ -363,64 +365,34 @@ function sqlclGenerateTNSAliases() {
     printf -- '\n'
 
     if [[ "${bFlag}" == 'true' ]]; then
-        sqlclBinary=" -b '\\''${sqlclBinary}'\\''"
+        # shellcheck disable=1003
+        sqlclBinary=' -b '\''\'\'''\'"${sqlclBinary}"\''\'\'''\'''
     fi
 
-    if [[ "${PFlag}" != 'true' ]]; then
-        globalPrefix='sql.'
-    fi
-
-    # Process TNS files
-    for tnsFile in "${tnsFiles[@]}"; do
-        printf -- '%s\n' "${h2}"
-        printf -- '%s %s\n' "${hs}" "${tnsFile}"
-        printf -- '%s\n' "${h2}"
-
+    # Process TNS file
+    if [[ "${tFlag}" == 'true' ]] || [[ "${TFlag}" == 'true' ]]; then
         while read -r netServiceName; do
             # shellcheck disable=1003
             printf -- 'alias %s%s='\''sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
-                "${globalPrefix}" \
+                "${aliasPrefix}" \
                 "${netServiceName}" \
                 "${sqlclBinary}" \
                 "${netServiceName}"
         done <<< "$(getNetServiceNamesFromFile "${tnsFile}")"
-
-        printf '\n'
-    done
+    fi
 
     # Process cloud configs
-    for (( i=0; i<${#cloudConfigFiles[@]}; i++ )); do
-        printf -- '%s\n' "${h2}"
-        printf -- '%s %s\n' "${hs}" "${cloudConfigFiles[${i}]}"
-        printf -- '%s\n' "${h2}"
-
-        # Setup prefix
-        prefix="${cloudConfigPrefixes[${i}]}"
-        if [[ -n "${prefix}" ]]; then
-            prefix+="."
-        fi
-
-        # Get service names for this cloud config
-        netServiceNames=()
-        while read -r serviceName; do
-            netServiceNames+=("${serviceName}")
-        done <<< "$(getCloudCounfigNetServiceNamesFromZip "${cloudConfigFiles[${i}]}")"
-
-        for netServiceName in "${netServiceNames[@]}"; do
+    if [[ "${cFlag}" == 'true' ]]; then
+        while read -r netServiceName; do
             # shellcheck disable=1003
-            printf -- 'alias %s%s%s='\''sqlclConnectHelper%s -c '\''\'\'''\''%s'\''\'\'''\'' -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
-                "${globalPrefix}" \
-                "${prefix}" \
+            printf -- 'alias %s%s='\''sqlclConnectHelper%s -c '\''\'\'''\''%s'\''\'\'''\'' -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
+                "${aliasPrefix}" \
                 "${netServiceName}" \
                 "${sqlclBinary}" \
-                "${cloudConfigFiles[${i}]}" \
+                "${cloudConfigZip}" \
                 "${netServiceName}"
-        done
-
-        if [[ "${i}" -lt "$((${#cloudConfigFiles[@]}-1))" ]]; then
-            printf -- '\n'
-        fi
-    done
+        done <<< "$(getCloudCounfigNetServiceNamesFromZip "${cloudConfigZip}")"
+    fi
 
     return 0
 } # sqlclGenerateTNSAliases
