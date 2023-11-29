@@ -47,7 +47,7 @@ function sqlclGenerateOIDAliases() {
         printf -- '  -e {context}   --Context from LDAP to exclude from alias generation\n'
         printf -- '                 --Can be specified more than once\n'
         printf -- '                 --Cannot be specified with "-i"\n'
-        printf -- '  -f {function}  --The name of a function that prints the name to use for an alias\n'
+        printf -- '  -f {function}  --The name of a function that prints the formatted name to use for an alias\n'
         printf -- '                 --The function will receive the following parameters (in the provided order):\n'
         printf -- '                 --      Alias prefix\n'
         printf -- '                 --      LDAP Context (lowercase)\n'
