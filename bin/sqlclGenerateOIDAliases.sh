@@ -587,7 +587,8 @@ function sqlclGenerateOIDAliases() {
     printf -- '%s\n' "${h1}"
 
     if [[ "${bFlag}" == 'true' ]]; then
-        sqlclBinary=" -b '\\''${sqlclBinary}'\\''"
+        # shellcheck disable=1003
+        sqlclBinary=' -b '\''\'\'''\'"${sqlclBinary}"\''\'\'''\'''
     fi
 
     if [[ "${iFlag}" == 'true' ]]; then
