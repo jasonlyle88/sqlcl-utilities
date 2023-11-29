@@ -1,7 +1,5 @@
 #shellcheck shell=bash
 
-# TODO2: Add call generation information to header like OID Aliases
-
 function sqlclGenerateTNSAliases() {
     ############################################################################
     #
