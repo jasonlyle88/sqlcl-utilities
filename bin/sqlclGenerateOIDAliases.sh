@@ -298,7 +298,7 @@ function sqlclGenerateOIDAliases() {
                         "${databaseName}"
 
                 # Call the additional aliases function if provided
-                if [[ "${aFlag}" = 'true' ]]; then
+                if [[ "${aFlag}" == 'true' ]]; then
                     "${additionalAliasesFunction}" \
                         "${aliasPrefix}" \
                         "${aliasName}" \

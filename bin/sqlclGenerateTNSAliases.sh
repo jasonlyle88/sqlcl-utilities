@@ -2,8 +2,6 @@
 
 # TODO2: Add call generation information to header like OID Aliases
 
-# TODO3: Add name generation function like in OID Aliases (-f)
-
 # TODO4: Add an alias generation funciton like in OID Aliases (-a)
 
 function sqlclGenerateTNSAliases() {
@@ -25,14 +23,25 @@ function sqlclGenerateTNSAliases() {
     function usage() {
         printf -- 'This script is used to generate SQLcL aliases based on TNS aliases\n\n'
         printf -- 'The following arguments are recognized\n\n'
-        printf -- '  -b {binary}  --Specify the SQLcl binary to use\n'
-        printf -- '  -c {zip}     --Generate shell aliases for the provided cloud configuration wallet (zip file)\n'
-        printf -- '  -h           --Show this help\n'
-        printf -- '  -p {prefix}  --Prefix used for generated aliases\n'
-        printf -- '               --Defaults to "sql."\n'
-        printf -- '  -t {file}    --Generate shell aliases for the provided TNS names file\n'
-        printf -- '               --Should be a valid tnsnames.ora file\n'
-        printf -- '  -T           --Generate shell aliases for the tnsnames.ora file in the standard location\n'
+        printf -- '  -a {function}  --The name of a function that prints additional aliases (one per line)}\n'
+        printf -- '                 --The function will receive the following parameters (in the provided order):\n'
+        printf -- '                 --      Alias prefix\n'
+        printf -- '                 --      Alias name\n'
+        printf -- '                 --      Net service name\n'
+        printf -- '                 --      Cloud config zip file (absolute path) (if cloud config wallet)\n'
+        printf -- '  -b {binary}    --Specify the SQLcl binary to use\n'
+        printf -- '  -c {zip}       --Generate shell aliases for the provided cloud configuration wallet (zip file)\n'
+        printf -- '  -f {function}  --The name of a function that prints the formatted name to use for an alias\n'
+        printf -- '                 --The function will receive the following parameters (in the provided order):\n'
+        printf -- '                 --      Alias prefix\n'
+        printf -- '                 --      Net service name\n'
+        printf -- '                 --      Cloud config zip file (absolute path) (if cloud config wallet)\n'
+        printf -- '  -h             --Show this help\n'
+        printf -- '  -p {prefix}    --Prefix used for generated aliases\n'
+        printf -- '                 --Defaults to "sql."\n'
+        printf -- '  -t {file}      --Generate shell aliases for the provided TNS names file\n'
+        printf -- '                 --Should be a valid tnsnames.ora file\n'
+        printf -- '  -T             --Generate shell aliases for the tnsnames.ora file in the standard location\n'
         printf -- '\n'
         printf -- 'Example:\n'
         printf -- '  %s -T -t "~/tnsnames.ora" -c "~/cloud_wallet_1.zip" -c "~/cloud_wallet_2.zip"\n\n' "${scriptName}"
@@ -73,6 +82,7 @@ function sqlclGenerateTNSAliases() {
 
     function standardTnsFileLookup() {
         local tnsnamesName='tnsnames.ora'
+        local file
 
         # Check if the TNS_ADMIN variable is set
         if [[ -n "${TNS_ADMIN}"  ]]; then
@@ -183,6 +193,15 @@ function sqlclGenerateTNSAliases() {
         rm -rf "${extractDir}"
     } # getCloudCounfigNetServiceNamesFromZip
 
+    # shellcheck disable=2317
+    function defaultAliasNameFormatFunction() {
+        local aliasPrefix="${1}"
+        local netServiceName="${2}"
+        local cloudConfigZip="${3}"
+
+        printf '%s%s' "${aliasPrefix}" "${netServiceName}"
+    } # defaultAliasNameFormatFunction
+
     ############################################################################
     #
     # Variables
@@ -216,14 +235,18 @@ function sqlclGenerateTNSAliases() {
     local OPTARG
     local opt
 
+    local aFlag='false'
     local bFlag='false'
     local cFlag='false'
+    local fFlag='false'
     local pFlag='false'
     local tFlag='false'
     local TFlag='false'
 
+    local additionalAliasesFunction # -a
     local sqlclBinary               # -b
     local cloudConfigZip            # -c
+    local aliasNameFormatFunction   # -f
     local aliasPrefix               # -p
     local tnsFile                   # -t
 
@@ -249,16 +272,21 @@ function sqlclGenerateTNSAliases() {
     ##  Procedural variables
     ############################################################################
     local tnsFileCount
-    local file
+    local netServiceName
+    local aliasName
 
     ############################################################################
     #
     # Option parsing
     #
     ############################################################################
-    while getopts ':b:c:hp:t:T' opt
+    while getopts ':a:b:c:f:hp:t:T' opt
     do
         case "${opt}" in
+        'a')
+            aFlag='true'
+            additionalAliasesFunction="${OPTARG}"
+            ;;
         'b')
             bFlag='true'
             sqlclBinary="${OPTARG}"
@@ -266,6 +294,10 @@ function sqlclGenerateTNSAliases() {
         'c')
             cFlag='true'
             cloudConfigZip="${OPTARG}"
+            ;;
+        'f')
+            fFlag='true'
+            aliasNameFormatFunction="${OPTARG}"
             ;;
         'h')
             usage
@@ -306,6 +338,10 @@ function sqlclGenerateTNSAliases() {
     #
     # Parameter defaults
     #
+    if [[ "${fFlag}" == 'false' ]]; then
+        aliasNameFormatFunction='defaultAliasNameFormatFunction'
+    fi
+
     if [[ "${pFlag}" == 'false' ]]; then
         aliasPrefix='sql.'
     fi
@@ -314,12 +350,19 @@ function sqlclGenerateTNSAliases() {
     # Parameter validations
     #
 
-    # Check SQLcl binary is executable
-    if [[ "${bFlag}" == 'true' ]] && [[ ! "$(command -v "${sqlclBinary}")" ]]; then
-        printf 'Cannot execute SQLcl binary "%s"\n' "${sqlclBinary}" >&2
+    # Check alias format function is executable
+    if [[ "${aFlag}" == 'true' ]] && [[ ! "$(command -v "${additionalAliasesFunction}")" ]]; then
+        printf -- 'Cannot execute additional aliases function "%s"\n' "${additionalAliasesFunction}" >&2
         return 11
     fi
 
+    # Check SQLcl binary is executable
+    if [[ "${bFlag}" == 'true' ]] && [[ ! "$(command -v "${sqlclBinary}")" ]]; then
+        printf 'Cannot execute SQLcl binary "%s"\n' "${sqlclBinary}" >&2
+        return 12
+    fi
+
+    # Count the number of TNS file types provided
     tnsFileCount=0
     if [[ "${cFlag}" == 'true' ]]; then
         ((tnsFileCount=tnsFileCount+1))
@@ -334,22 +377,28 @@ function sqlclGenerateTNSAliases() {
         ((tnsFileCount=tnsFileCount+1))
     fi;
 
-    # Check at least some version of TNS aliases is supplied
+    # Check at least one version of TNS aliase files are supplied
     if [[ "${tnsFileCount}" -eq 0 ]]; then
         printf -- "At least one TNS alias file must be specified\n" >&2
-        return 12
+        return 13
     fi;
 
     # Check at only one version of TNS aliases is supplied
     if [[ "${tnsFileCount}" -gt 1 ]]; then
         printf -- "Only one TNS alias file can be specified\n" >&2
-        return 13
+        return 14
     fi;
 
     # Check TNS file or cloud config zip file is readable
     if [[ ! -r "${tnsFile}${cloudConfigZip}" ]]; then
         printf 'Not a readable file: "%s"\n' "${tnsFile}${cloudConfigZip}" >&2
-        return 14
+        return 15
+    fi
+
+    # Check alias format function is executable
+    if [[ "${fFlag}" == 'true' ]] && [[ ! "$(command -v "${aliasNameFormatFunction}")" ]]; then
+        printf -- 'Cannot execute alias format function "%s"\n' "${aliasNameFormatFunction}" >&2
+        return 16
     fi
 
     ##############################################################################
@@ -372,25 +421,57 @@ function sqlclGenerateTNSAliases() {
     # Process TNS file
     if [[ "${tFlag}" == 'true' ]] || [[ "${TFlag}" == 'true' ]]; then
         while read -r netServiceName; do
+            # Call the alias name format function to get the alias name
+            aliasName="$(
+                "${aliasNameFormatFunction}" \
+                    "${aliasPrefix}" \
+                    "${netServiceName}"
+            )"
+
+            # Print the SQLcl alias for this connection
             # shellcheck disable=1003
-            printf -- 'alias %s%s='\''sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
-                "${aliasPrefix}" \
-                "${netServiceName}" \
+            printf -- 'alias %s='\''sqlclConnectHelper%s -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
+                "${aliasName}" \
                 "${sqlclBinary}" \
                 "${netServiceName}"
+
+            # Call the additional aliases function if provided
+            if [[ "${aFlag}" == 'true' ]]; then
+                "${additionalAliasesFunction}" \
+                    "${aliasPrefix}" \
+                    "${aliasName}" \
+                    "${netServiceName}"
+            fi
         done <<< "$(getNetServiceNamesFromFile "${tnsFile}")"
     fi
 
     # Process cloud configs
     if [[ "${cFlag}" == 'true' ]]; then
         while read -r netServiceName; do
+            # Call the alias name format function to get the alias name
+            aliasName="$(
+                "${aliasNameFormatFunction}" \
+                    "${aliasPrefix}" \
+                    "${netServiceName}" \
+                    "${cloudConfigZip}"
+            )"
+
+            # Print the SQLcl alias for this connection
             # shellcheck disable=1003
-            printf -- 'alias %s%s='\''sqlclConnectHelper%s -c '\''\'\'''\''%s'\''\'\'''\'' -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
-                "${aliasPrefix}" \
-                "${netServiceName}" \
+            printf -- 'alias %s='\''sqlclConnectHelper%s -c '\''\'\'''\''%s'\''\'\'''\'' -i '\''\'\'''\''%s'\''\'\'''\'''\''\n' \
+                "${aliasName}" \
                 "${sqlclBinary}" \
                 "${cloudConfigZip}" \
                 "${netServiceName}"
+
+            # Call the additional aliases function if provided
+            if [[ "${aFlag}" == 'true' ]]; then
+                "${additionalAliasesFunction}" \
+                    "${aliasPrefix}" \
+                    "${aliasName}" \
+                    "${netServiceName}" \
+                    "${cloudConfigZip}"
+            fi
         done <<< "$(getCloudCounfigNetServiceNamesFromZip "${cloudConfigZip}")"
     fi
 
