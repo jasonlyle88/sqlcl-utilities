@@ -64,7 +64,7 @@ function sqlclGenerateOIDAliases() {
         printf -- '                 --Defaults to "389"\n'
         printf -- '\n'
         printf -- 'Example:\n'
-        printf -- '  %s -H "example.ldap-host.com"\n'"${scriptName}"
+        printf -- '  %s -H "example.ldap-host.com"\n' "${scriptName}"
         printf -- '\n'
 
         return 0
