@@ -40,7 +40,7 @@ function sqlclGenerateTNSAliases() {
         printf -- '  -T             --Generate shell aliases for the tnsnames.ora file in the standard location\n'
         printf -- '\n'
         printf -- 'Example:\n'
-        printf -- '  %s -T -t "~/tnsnames.ora" -c "~/cloud_wallet_1.zip" -c "~/cloud_wallet_2.zip"\n\n' "${scriptName}"
+        printf -- '  %s -c "~/cloud_wallet.zip"\n\n' "${scriptName}"
 
         return 0
     } # usage
