@@ -5,7 +5,7 @@ Generate shell aliases for connecting via [SQLcl](https://www.oracle.com/databas
 
 By default, the generated aliases take the format of `sql.database_name`. However, the alias name is completely customizable via a prefix parameter or a alias generation function (or both!).
 
-### How to use
+### About this plugin
 This plugin provides 3 seperate functions:
 
 #### sqlclConnectHelper
@@ -36,6 +36,12 @@ sqlclConnectHelper -h
 
 #### sqlclGenerateOIDAliases
 <details>
+This function outputs aliases for database connections collected from a provided OID LDAP server along with an additional header about the parameters used to generate the aliases.
+
+The function accepts various information about the OID LDAP server to query as well as optional parameters of the SQLcl binary to use, the name of a custom function that prints to standard output additional aliases based on each database, as well as the name of a custom function that prints to standard output the alias to use for a given database connection alias.
+
+Given that some LDAP servers limit the number of entities returned by the anonymous user, this function does not attempt to query all the available information in a single query call. Instead, it will first query all of the contexts (how databases are organized in an OID LDAP server). Then, the function will query each context individually for all the databases in that context. The function does the database queries in the background so they all may be done in parallel in order to improve performance. However, depending on the number of contexts and databases, this function may still take a little bit of time to run. With approximately 1100 databases spread across 80 contexts, the function takes approximately 50 seconds to run.
+
 TODO
 </details>
 
