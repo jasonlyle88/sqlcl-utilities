@@ -3,7 +3,7 @@
 ## Purpose
 Generate BASH or ZSH shell aliases for connecting via [SQLcl](https://www.oracle.com/database/sqldeveloper/technologies/sqlcl/) to Oracle databases defined in TNS files or OID LDAP servers.
 
-By default, the generated aliases take the format of `sql.database_name`. However, the alias name is completely customizable via a prefix parameter or a alias generation function (or both!).
+By default, the generated aliases take the format of `sql.database_name`. However, the alias name is completely customizable via a prefix parameter or an alias name format function (or both!).
 
 ### About this plugin
 This plugin provides 3 seperate functions:
