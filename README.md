@@ -42,12 +42,14 @@ The function accepts various information about the OID LDAP server to query as w
 
 Given that some LDAP servers limit the number of entities returned by the anonymous user, this function does not attempt to query all the available information in a single query call. Instead, it will first query all of the contexts (how databases are organized in an OID LDAP server). Then, the function will query each context individually for all the databases in that context. The function does the database queries in the background so they all may be done in parallel in order to improve performance. However, depending on the number of contexts and databases, this function may still take a little bit of time to run. With approximately 1100 databases spread across 80 contexts, the function takes approximately 50 seconds to run.
 
-TODO
+Additionally, the generated aliases set the `LDAPCON` variable that SQLcl uses for LDAP lookups for the specific connection. This way, if you have multiple LDAP servers, you do not have to manually update the `LDAPCON` variable when trying to connect to a database in a different LDAP.
 </details>
 
 #### sqlclGenerateTNSAliases
 <details>
-TODO
+This function outputs aliases for database connections collected from a provided TNS names file or cloud wallet along wtih an additional header about the parameters used to generate the aliases.
+
+The function accepts either a tnsnames.ora file in the standard oracle location, a file path pointing to a TNS names file, or a file path pointing to a cloud wallet zip file. It also optionally accepts parameters for the SQLcl binary to use, the name of a custom function that prints to standard output additional aliases based on each database, as well as the name of a custom function that prints to standard output the alias to use for a given database connection alias.
 </details>
 
 ## Requirements
