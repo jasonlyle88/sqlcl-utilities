@@ -1,4 +1,4 @@
-# sqlcl-connection-alias-generators
+# SQLcl Connection Alias Generators
 
 ## Purpose
 Generate BASH or ZSH shell aliases for connecting via [SQLcl](https://www.oracle.com/database/sqldeveloper/technologies/sqlcl/) to Oracle databases defined in TNS files or OID LDAP servers.
