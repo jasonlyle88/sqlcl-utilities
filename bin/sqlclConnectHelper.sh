@@ -358,5 +358,5 @@ function sqlclConnectHelper() {
         "${sqlclBinary}" "${sqlclArguments[@]}" "${sqlclUser}"/"${sqlclPassword}"@"${sqlclConnectIdentifier}""${sqlclRole}""${sqlclRunScriptParameters[@]}"
     fi
 
-    return 0
+    return $?
 } # sqlclConnectHelper
