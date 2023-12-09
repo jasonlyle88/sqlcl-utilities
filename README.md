@@ -89,7 +89,61 @@ This should be compatible with other ZSH frameworks/package managers, but I have
 ## Usage
 
 ### Additional alias generation functions
-TODO
+If you want to generate additional aliases, both the `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` functions accept function names that will be called for every database that is processed. The `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` both accept the function name through the `-a` parameter, but both provide slightly different information to your function. Below is the information provided by the functions:
+
+- `sqlclGenerateOIDAliases`
+    - Alias prefix
+    - Alias name
+    - LDAP Context (lowercase)
+    - Database name (lowercase)
+    - Database connect string
+- `sqlclGenerateTNSAliases`
+    - Alias prefix
+    - Alias name
+    - Net service name
+    - Cloud config zip file (absolute path) (if cloud config wallet)
+
+An example where this is useful would be if you have APEX set up in each of the databases and want to be able to open the APEX builder in your browser of choice. This could be accomplished like the following example:
+
+```shell
+function generateAPEXAliases() {
+    local prividedAliasPrefix="${1}"
+    local providedAliasName="${2}"
+    local netServiceName="${3}"
+    local cloudConfigZip="${4}"
+
+    local cloudConfigFilename="$(basename "${cloudConfigZip}" '.zip')"
+    local apexUrl
+    local additionalAliasName
+    local browserBinary='/Applications/Firefox.app/Contents/MacOS/firefox'
+
+    # Figure out the base of the URL based on the wallet
+    if [[ "${cloudConfigFilename}" == 'Wallet_myatp1' ]]; then
+        apexUrl='https://g86c945163ece5c-myatp1.adb.us-ashburn-1.oraclecloudapps.com/ords/r/apex'
+    elif [[ "${cloudConfigFilename}" == 'Wallet_myatp2' ]]; then
+        apexUrl='https://g86c945163ece5c-myatp2.adb.us-ashburn-1.oraclecloudapps.com/ords/r/apex'
+    fi
+
+    # Replace "sql." with "apex." in the provided alias name
+    additionalAliasName="apex.${providedAliasName#"sql."}"
+
+    # Anything sent to standard out will be included with your generated alias file
+    printf 'alias %s="%s %s"\n' \
+        "${additionalAliasName}" \
+        "${browserBinary}" \
+        "${apexUrl}"
+}
+
+sqlclGenerateTNSAliases \
+    -p 'sql.myatp1.' \
+    -a 'generateAPEXAliases' \
+    -c "${TNS_ADMIN}/wallets/Wallet_myatp1.zip"
+
+sqlclGenerateTNSAliases \
+    -p 'sql.myatp2.' \
+    -a 'generateAPEXAliases' \
+    -c "${TNS_ADMIN}/wallets/Wallet_myatp2.zip"
+```
 
 ### Alias name formatting functions
 TODO
