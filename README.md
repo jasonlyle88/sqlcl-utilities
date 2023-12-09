@@ -92,14 +92,14 @@ This should be compatible with other ZSH frameworks/package managers, but I have
 If you want to generate additional aliases, both the `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` functions accept function names that will be called for every database that is processed. The `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` both accept the function name through the `-a` parameter, but both provide slightly different information to your function. Below is the information provided by the functions:
 
 - `sqlclGenerateOIDAliases`
-    - Alias prefix
-    - Alias name
+    - Alias prefix (from the `-p` parameter)
+    - Alias name (Default alias name or the result of the `-f` alias format function)
     - LDAP Context (lowercase)
     - Database name (lowercase)
     - Database connect string
 - `sqlclGenerateTNSAliases`
-    - Alias prefix
-    - Alias name
+    - Alias prefix (from the `-p` parameter)
+    - Alias name (Default alias name or the result of the `-f` alias format function)
     - Net service name
     - Cloud config zip file (absolute path) (if cloud config wallet)
 
@@ -146,7 +146,65 @@ sqlclGenerateTNSAliases \
 ```
 
 ### Alias name formatting functions
-TODO
+By default, aliases are generated as `sql.database_name`, but this may not be your desired format. If you want just a static string before the `database_name` in the alias, then the `-p` parameter provides this functionality. Otherwise, the the `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` both accept the `-f` parameter that takes in a function that gives you complete control over how the alias is formatted. However, each plugin function provides slightly different information to your format function. Below is the information provided by the functions:
+
+- `sqlclGenerateOIDAliases`
+    - Alias prefix (from the `-p` parameter)
+    - LDAP Context (lowercase)
+    - Database name (lowercase)
+    - Database connect string
+- `sqlclGenerateTNSAliases`
+    - Alias prefix (from the `-p` parameter)
+    - Net service name
+    - Cloud config zip file (absolute path) (if cloud config wallet)
+
+Examples of where this is useful is if you are using a TNS names file you don't control or and LDAP server and you want to programattically change the names that are used for the databases. Here is an example:
+
+```shell
+function formatLdapAliasNames() {
+    local aliasPrefix="${1}"
+    local contextName="${2}"
+    local databaseName="${3}"
+    local databaseConnectIdentifier="${4}"
+
+    local prefix='work_db_prefix'
+    local aliasName="${aliasPrefix}"
+
+    # Add the database group (context) after the standard prefix
+    aliasName="${aliasName}${contextName}."
+
+    # Add the environment designator (DEV or QA) after the database group
+    # (context) and before the database name
+    if [[ "${databaseName}" == *'-dev' ]]; then
+        aliasName="${aliasName}dev."
+    elif [[ "${databaseName}" == *'-qa' ]]; then
+        aliasName="${aliasName}qa."
+    fi
+
+    # Add the database name without the environment designator (DEV or QA) to
+    # to the end of the alias name
+    if [[ "${databaseName}" == *'-dev' ]]; then
+        aliasName="${aliasName}${databaseName%????}"
+    elif [[ "${databaseName}" == *'-qa' ]]; then
+        aliasName="${aliasName}${databaseName%???}"
+    fi
+
+    # Output the alias name for the generation script to use
+    printf '%s\n' "${aliasName}"
+}
+
+sqlclGenerateOIDAliases \
+    -p 'sql.work.dev.' \
+    -f 'formatLdapAliasNames' \
+    -H 'ldap-dev.work.com' \
+    -B 'dc=work,dc=com'
+
+sqlclGenerateOIDAliases \
+    -p 'sql.work.qa.' \
+    -f 'formatLdapAliasNames' \
+    -H 'ldap-qa.work.com' \
+    -B 'dc=work,dc=com'
+```
 
 ### EVAL or SOURCE
 Because the `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` functions output their information to standard output, the data must be captured and used. There are two general ways to do this:
