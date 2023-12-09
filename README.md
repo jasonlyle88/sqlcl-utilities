@@ -104,6 +104,7 @@ If you want to generate additional aliases, both the `sqlclGenerateOIDAliases` a
     - Cloud config zip file (absolute path) (if cloud config wallet)
 
 An example where this is useful would be if you have APEX set up in each of the databases and want to be able to open the APEX builder in your browser of choice. This could be accomplished like the following example:
+<details>
 
 ```shell
 function generateAPEXAliases() {
@@ -145,6 +146,8 @@ sqlclGenerateTNSAliases \
     -c "${TNS_ADMIN}/wallets/Wallet_myatp2.zip"
 ```
 
+</details>
+
 ### Alias name formatting functions
 By default, aliases are generated as `sql.database_name`, but this may not be your desired format. If you want just a static string before the `database_name` in the alias, then the `-p` parameter provides this functionality. Otherwise, the the `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` both accept the `-f` parameter that takes in a function that gives you complete control over how the alias is formatted. However, each plugin function provides slightly different information to your format function. Below is the information provided by the functions:
 
@@ -159,6 +162,7 @@ By default, aliases are generated as `sql.database_name`, but this may not be yo
     - Cloud config zip file (absolute path) (if cloud config wallet)
 
 Examples of where this is useful is if you are using a TNS names file you don't control or and LDAP server and you want to programattically change the names that are used for the databases. Here is an example:
+<details>
 
 ```shell
 function formatLdapAliasNames() {
@@ -205,6 +209,8 @@ sqlclGenerateOIDAliases \
     -H 'ldap-qa.work.com' \
     -B 'dc=work,dc=com'
 ```
+
+</details>
 
 ### EVAL or SOURCE
 Because the `sqlclGenerateOIDAliases` and `sqlclGenerateTNSAliases` functions output their information to standard output, the data must be captured and used. There are two general ways to do this:
