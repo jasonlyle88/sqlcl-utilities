@@ -1,12 +1,24 @@
-# SQLcl Connection Alias Generators
+# SQLcl Utilities
 
 ## Purpose
-Generate BASH or ZSH shell aliases for connecting via [SQLcl](https://www.oracle.com/database/sqldeveloper/technologies/sqlcl/) to Oracle databases defined in TNS files or OID LDAP servers.
+This plugin provides different utility functions to help you interact with [Oracle SQLcl](https://www.oracle.com/database/sqldeveloper/technologies/sqlcl/).
+
+One function, `sqlclUpdater` helps you install and update SQLcl.
+
+Another function, `sqlclConnectHelper` wraps a script around SQLcl to allow for unix style parameters to be passed to SQLcl.
+
+`sqlclGenerateTNSAliases` and `sqlclGenerateOIDAliases` generate BASH/ZSH shell aliases for connecting via SQLcl to Oracle databases defined in TNS files or OID LDAP servers.
 
 By default, the generated aliases take the format of `sql.database_name`. However, the alias name is completely customizable via a prefix parameter or an alias name format function (or both!).
 
-### About this plugin
-This plugin provides 3 seperate functions:
+### Utility Functions
+
+#### sqlclUpdater
+<details>
+This function will download the latest version of Oracle SQLcl and unzip it into a given directory. The specific version of SQLcl downloaded is unzipped into a child directory or the given directory with the name of the SQLcl version. It additionally creates a symlink called 'latest' that points to the most recently downloaded version of SQLcl. You can also specify to create a symlink called 'live' that points to the most recently downloaded version of SQLcl as well as specify the number of versions of SQLcl to keep.
+
+If you do not specify the directory to use for SQLcl downloads, `/opt/sqlcl` will be used. The `/opt` directory usually requires root permissions. Best practice would be to create the `/opt/sqlcl` directory and set the group permissions to allow for write and make sure you are a member of the group. Then you can work on SQLcl versions (update symlinks, download new versions, etc) without needing to use `sudo`.
+</details>
 
 #### sqlclConnectHelper
 <details>
@@ -60,27 +72,27 @@ The function accepts either a tnsnames.ora file in the standard oracle location,
 
 ### Manual installation (ZSH)
 ```shell
-git clone 'https://github.com/jasonlyle88/sqlcl-connection-alias-generators' "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-connection-alias-generators"
-echo 'source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-connection-alias-generators/sqlcl-connection-alias-generators.plugin.zsh"' >> "${HOME}/.zshrc"
-source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-connection-alias-generators/sqlcl-connection-alias-generators.plugin.zsh"
+git clone 'https://github.com/jasonlyle88/sqlcl-utilities' "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-utilities"
+echo 'source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-utilities/sqlcl-utilities.plugin.zsh"' >> "${HOME}/.zshrc"
+source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-utilities/sqlcl-utilities.plugin.zsh"
 ```
 
 ### Manual installation (BASH)
 ```shell
-git clone 'https://github.com/jasonlyle88/sqlcl-connection-alias-generators' "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-connection-alias-generators"
-echo 'source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-connection-alias-generators/sqlcl-connection-alias-generators.plugin.bash"' >> "${HOME}/.bashrc"
-source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-connection-alias-generators/sqlcl-connection-alias-generators.plugin.bash"
+git clone 'https://github.com/jasonlyle88/sqlcl-utilities' "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-utilities"
+echo 'source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-utilities/sqlcl-utilities.plugin.bash"' >> "${HOME}/.bashrc"
+source "${XDG_CONFIG_HOME:-${HOME}}/sqlcl-utilities/sqlcl-utilities.plugin.bash"
 ```
 
 ### Installation with ZSH package managers
 
 #### [Antidote](https://getantidote.github.io/)
-Add `jasonlyle88/sqlcl-connection-alias-generators` to your plugins file (default is `~/.zsh_plugins.txt`)
+Add `jasonlyle88/sqlcl-utilities` to your plugins file (default is `~/.zsh_plugins.txt`)
 
 #### [Oh-My-Zsh](https://ohmyz.sh/)
 ```shell
-git clone 'https://github.com/jasonlyle88/sqlcl-connection-alias-generators' "${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}/plugins/sqlcl-connection-alias-generators"
-omz plugin enable sqlcl-connection-alias-generators
+git clone 'https://github.com/jasonlyle88/sqlcl-utilities' "${ZSH_CUSTOM:-${HOME}/.oh-my-zsh/custom}/plugins/sqlcl-utilities"
+omz plugin enable sqlcl-utilities
 ```
 
 #### Others
