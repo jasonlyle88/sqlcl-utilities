@@ -11,8 +11,8 @@ function sqlclUpdater() {
         printf -- '\n'
         printf -- 'This script installs or updates Oracle SQLcl in a given directory.\n'
         printf -- 'It also creates/updates a symlink called "latest" to point to the\n'
-        printf -- 'most recently donwloaded version of Oracle SQLcl.\n'
-        printf -- 'This program does not alter your path, you must do that manually.\n'
+        printf -- 'most recently downloaded version of Oracle SQLcl.\n'
+        printf -- 'This script does not alter your PATH, you must do that manually.\n'
         printf -- '\n'
         printf -- 'The following arguments are recognized (* = required)\n'
         printf -- '\n'
@@ -301,7 +301,7 @@ function sqlclUpdater() {
         printf -- '%s\n' "${sqlclEtag}" > "${localDirectory}/${etagFilename}"
 
         # Unzip sqlcl zip file
-        printVerbose "${qFlag}" 'Unzipping to %s/%s....\n' "${localDirectory}" "${zipFilename}"
+        printVerbose "${qFlag}" 'Unzipping %s/%s....\n' "${localDirectory}" "${zipFilename}"
         unzip -qq -d "${localDirectory}" "${localDirectory}/${zipFilename}"
 
         # Remove the zip file since it has been unzipped
