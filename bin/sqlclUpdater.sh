@@ -130,7 +130,7 @@ function sqlclUpdater() {
     # shellcheck disable=SC2296
     scriptBase="${BASH_SOURCE[0]:-${(%):-%x}}"
     # shellcheck disable=SC2034
-    scriptName="$(basename -- "${scriptBase}")"
+    scriptName="$(basename -- "${scriptBase}" '.sh')"
     # shellcheck disable=SC2034
     scriptPath="$(getCanonicalPath "$(dirname -- "${scriptBase}")")"
 
