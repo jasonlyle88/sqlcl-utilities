@@ -40,7 +40,7 @@ function sqlclGenerateOIDConnections() {
         printf -- '  -e {context}   --Context from LDAP to exclude from connection generation\n'
         printf -- '                 --Can be specified more than once\n'
         printf -- '                 --Cannot be specified with "-i"\n'
-        printf -- '  -f {folder}    --The folder to import connections into\n'
+        printf -- '  -f {folder}    --The folder into which to import connections\n'
         printf -- '                 --Defaults to the LDAP host at the root\n'
         printf -- '  -h             --Show this help\n'
         printf -- '* -H {host}      --LDAP host used to query for entries\n'
@@ -49,6 +49,8 @@ function sqlclGenerateOIDConnections() {
         printf -- '                 --Cannot be specified with "-e"\n'
         printf -- '  -P {port}      --LDAP port used to query for entries\n'
         printf -- '                 --Defaults to "389"\n'
+        printf -- '  -r {root}      --The folder root in which to place the generated folder and connections\n'
+        printf -- '                 --Defaults to the SQLcl connection root\n'
         printf -- '* -u {user}      --Database user used to setup connections\n'
         printf -- '                 --Can be specified more than once\n'
         printf -- '  -v             --Verbose output\n'
@@ -363,14 +365,15 @@ function sqlclGenerateOIDConnections() {
     local PFlag='false'
     local uFlag='false'
 
-    local sqlclBinary
-    local ldapBasePath
-    local rootFolder
-    local -a providedContextList=()
-    local ldapHost
-    local ldapPort
-    local -a userList=()
-    local verboseLevel=0
+    local sqlclBinary                   # -b
+    local ldapBasePath                  # -B
+    local -a providedContextList=()     # -e/-i
+    local folderBaseName                # -f
+    local ldapHost                      # -H
+    local ldapPort                      # -P
+    local folderBaseRoot                # -r
+    local -a userList=()                # -u
+    local verboseLevel=0                # -v
 
 
     ############################################################################
@@ -399,6 +402,7 @@ function sqlclGenerateOIDConnections() {
     ############################################################################
     ##  Procedural variables
     ############################################################################
+    local rootFolder
     local contextSearchFilter
     local ldapBaseUrl
     local ldapContextSearchUrl
@@ -432,7 +436,7 @@ function sqlclGenerateOIDConnections() {
     # Option parsing
     #
     ############################################################################
-    while getopts ':b:B:e:f:hH:i:P:u:v' opt
+    while getopts ':b:B:e:f:hH:i:P:r:u:v' opt
     do
         case "${opt}" in
         'b')
@@ -450,7 +454,7 @@ function sqlclGenerateOIDConnections() {
             ;;
         'f')
             fFlag='true'
-            rootFolder="${OPTARG}"
+            folderBaseName="${OPTARG}"
             ;;
         'h')
             usage
@@ -468,6 +472,10 @@ function sqlclGenerateOIDConnections() {
             # shellcheck disable=2034
             PFlag='true'
             ldapPort="${OPTARG}"
+            ;;
+        'r')
+            rFlag='true'
+            folderBaseRoot="${OPTARG}"
             ;;
         'u')
             uFlag='true'
@@ -503,7 +511,7 @@ function sqlclGenerateOIDConnections() {
     fi
 
     if [[ "${fFlag}" != 'true' ]]; then
-        rootFolder="${ldapHost}"
+        folderBaseName="${ldapHost}"
     fi
 
     if [[ "${PFlag}" != 'true' ]]; then
@@ -543,8 +551,15 @@ function sqlclGenerateOIDConnections() {
     # Function Logic
     #
     ##############################################################################
+    if [[ "${rFlag}" == 'true' ]]; then
+        rootFolder="${folderBaseRoot}/${folderBaseName}"
+    else
+        rootFolder="${folderBaseName}"
+    fi
+
     printf -- '%s\n' "${h1}"
     printf -- '%s %-32s: "%s"\n' "${hs}" "SQLcl Binary" "${sqlclBinary}"
+    printf -- '%s %-32s: "%s"\n' "${hs}" "Root Folder" "${rootFolder}"
     printf -- '%s %-32s: "%s"\n' "${hs}" "LDAP Host" "${ldapHost}"
     printf -- '%s %-32s: "%s"\n' "${hs}" "LDAP Port" "${ldapPort}"
     printf -- '%s %-32s: "%s"\n' "${hs}" "LDAP Base" "${ldapBasePath}"
