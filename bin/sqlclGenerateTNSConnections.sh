@@ -442,9 +442,9 @@ function sqlclGenerateTNSConnections() {
     } > "${connectionsFile}"
 
     {
-        printf -- 'cm delete -force -folder %s\n' "${folderRoot}"
+        printf -- 'cm delete -force -folder "%s"\n' "${folderRoot}"
         printf -- 'cm import %s\n' "${connectionsFile}"
-        printf -- 'cm add -folder %s\n' "${folderRoot}"
+        printf -- 'cm add -folder "%s"\n' "${folderRoot}"
     } > "${sqlFile}"
 
     # Process TNS file
@@ -452,7 +452,7 @@ function sqlclGenerateTNSConnections() {
         while read -r netServiceName; do
             folderName="${folderRoot}/${netServiceName}"
 
-            printf -- 'cm add -folder %s\n' "${folderName}" >> "${sqlFile}"
+            printf -- 'cm add -folder "%s"\n' "${folderName}" >> "${sqlFile}"
 
             for user in "${userList[@]}"; do
 
@@ -472,7 +472,7 @@ function sqlclGenerateTNSConnections() {
                     printf -- '        }\n'
                 } >> "${connectionsFile}"
 
-                printf -- 'cm move -conn %s %s\n' "${connectionName}" "${folderName}" >> "${sqlFile}"
+                printf -- 'cm move -conn "%s" "%s"\n' "${connectionName}" "${folderName}" >> "${sqlFile}"
             done
         done <<< "$(getNetServiceNamesFromFile "${tnsFile}")"
     fi
@@ -482,7 +482,7 @@ function sqlclGenerateTNSConnections() {
         while read -r netServiceName; do
             folderName="${folderRoot}/${netServiceName}"
 
-            printf -- 'cm add -folder %s\n' "${folderName}" >> "${sqlFile}"
+            printf -- 'cm add -folder "%s"\n' "${folderName}" >> "${sqlFile}"
 
             for user in "${userList[@]}"; do
 
@@ -503,7 +503,7 @@ function sqlclGenerateTNSConnections() {
                     printf -- '        }\n'
                 } >> "${connectionsFile}"
 
-                printf -- 'cm move -conn %s %s\n' "${connectionName}" "${folderName}" >> "${sqlFile}"
+                printf -- 'cm move -conn "%s" "%s"\n' "${connectionName}" "${folderName}" >> "${sqlFile}"
             done
         done <<< "$(getCloudCounfigNetServiceNamesFromZip "${cloudConfigZip}")"
     fi

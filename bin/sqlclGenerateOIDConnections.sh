@@ -267,7 +267,7 @@ function sqlclGenerateOIDConnections() {
 
         folderName="${rootFolder}/${context}"
 
-        printf -- 'cm add -folder %s\n' "${folderName}" > "${sqlFile}"
+        printf -- 'cm add -folder "%s"\n' "${folderName}" > "${sqlFile}"
 
         # Loop over all the databases for this context
         count=0
@@ -276,7 +276,7 @@ function sqlclGenerateOIDConnections() {
 
                 folderName="${rootFolder}/${context}/${databaseName}"
 
-                printf -- 'cm add -folder %s\n' "${folderName}" >> "${sqlFile}"
+                printf -- 'cm add -folder "%s"\n' "${folderName}" >> "${sqlFile}"
 
                 for user in "${userList[@]}"; do
 
@@ -296,7 +296,7 @@ function sqlclGenerateOIDConnections() {
                         printf -- '        }\n'
                     } >>"${connectionsFile}"
 
-                    printf -- 'cm move -conn %s %s\n' "${connectionName}" "${folderName}" >> "${sqlFile}"
+                    printf -- 'cm move -conn "%s" "%s"\n' "${connectionName}" "${folderName}" >> "${sqlFile}"
 
                 done
 
@@ -731,11 +731,11 @@ function sqlclGenerateOIDConnections() {
     {
         if [[ "${iFlag}" == 'true' ]]; then
             for context in "${providedContextList[@]}"; do
-                printf -- 'cm delete -force -folder %s/%s\n' "${rootFolder}" "${context}"
+                printf -- 'cm delete -force -folder "%s"/%s\n' "${rootFolder}" "${context}"
             done
         else
             # Delete the root folder since we do not know the contexts that will be included
-            printf -- 'cm delete -force -folder %s\n' "${rootFolder}"
+            printf -- 'cm delete -force -folder "%s"\n' "${rootFolder}"
         fi
         printf -- 'cm import %s\n' "${connectionsFile}"
         printf -- 'exit\n'
